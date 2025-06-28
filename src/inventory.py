@@ -97,3 +97,39 @@ def list_inventory(db_path = None):
     inventory = load_inventory(db_path)
     print(inventory)
     return load_inventory(db_path)
+
+#set low amount
+def set_threshold(name: str, threshold: float, db_path=None):
+    path = db_path or DB_PATH
+    conn = sqlite3.connect(path)
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE inventory SET threshold = ? WHERE name = ?",
+        (threshold, name)
+    )
+    updated = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return updated
+
+
+#check for low amounts
+def check_threshold(db_path=None):
+    db = db_path or DB_PATH
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT name, quantity, unit, threshold
+        FROM inventory
+        WHERE threshold IS NOT NULL
+          AND quantity < threshold
+        """
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    return {
+        name: {"quantity": qty, "unit": unit, "threshold": th}
+        for name, qty, unit, th in rows
+    }
